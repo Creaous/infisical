@@ -11,6 +11,8 @@
 //
 // Any failure renders a placeholder for that chunk in the player UI
 
+import { getAuthToken } from "@app/hooks/api/reactQuery";
+
 import { TPamPlaybackChunk, TPamRecordingStorageBackend } from "./types";
 
 const PAM_RECORDING_AAD_VERSION = "v1";
@@ -81,7 +83,12 @@ const fetchCiphertext = async (
 ): Promise<Uint8Array> => {
   const isExternal = Boolean(chunk.presignedGetUrl);
   const url = chunk.presignedGetUrl ?? fallbackUrlBuilder(chunk.chunkIndex);
-  const resp = await fetch(url, { credentials: isExternal ? "omit" : "include" });
+  const token = getAuthToken();
+  const headers = !isExternal && token ? { Authorization: `Bearer ${token}` } : undefined;
+  const resp = await fetch(url, {
+    credentials: isExternal ? "omit" : "include",
+    headers
+  });
   if (!resp.ok) {
     if (isExternal && resp.status === 404) {
       throw new Error("Chunk data was not found in the external storage bucket.");
